@@ -12,8 +12,12 @@ async function main() {
 
     while (true) {
         const response = await redisClient.rPop("messages" as string)
-        console.log(response);
-        
+        if (!response) {
+
+        }   else {
+            console.log(response);
+            engine.process(JSON.parse(response))
+        }     
     }
     
 }

@@ -19,7 +19,12 @@ function main() {
         console.log("connected to redis");
         while (true) {
             const response = yield redisClient.rPop("messages");
-            console.log(response);
+            if (!response) {
+            }
+            else {
+                console.log(response);
+                engine.process(JSON.parse(response));
+            }
         }
     });
 }
