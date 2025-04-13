@@ -27,6 +27,7 @@ class Engine {
                     });
                 }
                 catch (e) {
+                    console.log(e);
                     RedisManager_1.RedisManager.getInstace().sendToApi(clientId, {
                         type: "ORDER_CANCELLED",
                         payload: {
@@ -42,11 +43,11 @@ class Engine {
         const orderbook = this.orderbooks.find(o => o.ticker() === market);
         const baseAsset = market.split("_")[0];
         const quoteAsset = market.split("_")[1];
-        console.log(this.orderbooks);
         if (!orderbook) {
             throw new Error("No orderbook found");
         }
         this.checkAndLockFunds(baseAsset, quoteAsset, side, userId, price, quantity);
+        console.log("balance book during trade", this.balances);
         const order = {
             price: Number(price),
             quantity: Number(quantity),
@@ -56,6 +57,9 @@ class Engine {
             userId
         };
         const { fills, executedQty } = orderbook.addOrder(order);
+        this.updateBalance(userId, baseAsset, quoteAsset, side, fills, executedQty);
+        console.log("balance book after trade", this.balances);
+        console.log(this.orderbooks);
         return {
             executedQty,
             fills,
@@ -63,25 +67,57 @@ class Engine {
         };
     }
     checkAndLockFunds(baseAsset, quoteAsset, side, userId, price, quantity) {
-        var _a, _b;
+        var _a, _b, _c, _d, _e, _f, _g, _h;
         if (side === "buy") {
-            // quote asset is inr 
-            if ((((_a = this.balances.get(userId)) === null || _a === void 0 ? void 0 : _a[quoteAsset].available) || 0) < Number(quantity) * Number(price)) {
+            if ((((_b = (_a = this.balances.get(userId)) === null || _a === void 0 ? void 0 : _a[quoteAsset]) === null || _b === void 0 ? void 0 : _b.available) || 0) < Number(quantity) * Number(price)) {
                 throw new Error("Insufficient funds");
             }
             //@ts-ignore
-            this.balances.get(userId)[quoteAsset].available = this.balances.get(userId)[quoteAsset].available - (Number(quantity) * Number(price));
+            this.balances.get(userId)[quoteAsset].available = ((_c = this.balances.get(userId)) === null || _c === void 0 ? void 0 : _c[quoteAsset].available) - (Number(quantity) * Number(price));
             //@ts-ignore
-            this.balances.get(userId)[quoteAsset].locked = this.balances.get(userId)[quoteAsset].locked + (Number(quantity) * Number(price));
+            this.balances.get(userId)[quoteAsset].locked = ((_d = this.balances.get(userId)) === null || _d === void 0 ? void 0 : _d[quoteAsset].locked) + (Number(quantity) * Number(price));
         }
         else {
-            if ((((_b = this.balances.get(userId)) === null || _b === void 0 ? void 0 : _b[baseAsset].available) || 0) < Number(quantity) * Number(price)) {
+            if ((((_f = (_e = this.balances.get(userId)) === null || _e === void 0 ? void 0 : _e[baseAsset]) === null || _f === void 0 ? void 0 : _f.available) || 0) < Number(quantity) * Number(price)) {
                 throw new Error("Insufficient funds");
             }
             //@ts-ignore
-            this.balances.get(userId)[baseAsset].available = this.balances.get(userId)[baseAsset].available - (Number(quantity) * Number(price));
+            this.balances.get(userId)[baseAsset].available = ((_g = this.balances.get(userId)) === null || _g === void 0 ? void 0 : _g[baseAsset].available) - (Number(quantity) * Number(price));
             //@ts-ignore
-            this.balances.get(userId)[baseAsset].locked = this.balances.get(userId)[baseAsset].locked + (Number(quantity) * Number(price));
+            this.balances.get(userId)[baseAsset].locked = ((_h = this.balances.get(userId)) === null || _h === void 0 ? void 0 : _h[baseAsset].locked) + (Number(quantity) * Number(price));
+        }
+    }
+    updateBalance(userId, baseAsset, quoteAsset, side, fills, executedQty) {
+        if (side === "buy") {
+            fills.forEach(fill => {
+                // Update quote asset balance
+                var _a, _b, _c, _d;
+                //@ts-ignore
+                this.balances.get(fill.otherUserId)[quoteAsset].available = ((_a = this.balances.get(fill.otherUserId)) === null || _a === void 0 ? void 0 : _a[quoteAsset].available) + (fill.qty * fill.price);
+                //@ts-ignore
+                this.balances.get(userId)[quoteAsset].locked = ((_b = this.balances.get(userId)) === null || _b === void 0 ? void 0 : _b[quoteAsset].locked) - (fill.qty * fill.price);
+                // Update base asset balance
+                //@ts-ignore
+                this.balances.get(fill.otherUserId)[baseAsset].locked = ((_c = this.balances.get(fill.otherUserId)) === null || _c === void 0 ? void 0 : _c[baseAsset].locked) - fill.qty * fill.price;
+                //@ts-ignore
+                this.balances.get(userId)[baseAsset].available = ((_d = this.balances.get(userId)) === null || _d === void 0 ? void 0 : _d[baseAsset].available) + fill.qty * fill.price;
+            });
+        }
+        else {
+            console.log(fills);
+            fills.forEach(fill => {
+                // Update quote asset balance
+                var _a, _b, _c, _d;
+                //@ts-ignore
+                this.balances.get(fill.otherUserId)[quoteAsset].locked = ((_a = this.balances.get(fill.otherUserId)) === null || _a === void 0 ? void 0 : _a[quoteAsset].locked) - (fill.qty * fill.price);
+                //@ts-ignore
+                this.balances.get(userId)[quoteAsset].available = ((_b = this.balances.get(userId)) === null || _b === void 0 ? void 0 : _b[quoteAsset].available) + (fill.qty * fill.price);
+                // Update base asset balance
+                //@ts-ignore
+                this.balances.get(fill.otherUserId)[baseAsset].available = ((_c = this.balances.get(fill.otherUserId)) === null || _c === void 0 ? void 0 : _c[baseAsset].available) + (fill.qty * fill.price);
+                //@ts-ignore
+                this.balances.get(userId)[baseAsset].locked = ((_d = this.balances.get(userId)) === null || _d === void 0 ? void 0 : _d[baseAsset].locked) - (fill.qty * fill.price);
+            });
         }
     }
     setBaseBalances() {

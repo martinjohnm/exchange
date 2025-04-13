@@ -15,7 +15,6 @@ async function main() {
         if (!response) {
 
         }   else {
-            console.log(response);
             engine.process(JSON.parse(response))
         }     
     }

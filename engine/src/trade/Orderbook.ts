@@ -85,31 +85,42 @@ export class Orderbook {
             }
         }
 
+        
+        
+
     }
 
     matchBid(order : Order) : {fills : Fill[], executedQty : number} {
 
         const fills: Fill[] = []
-        let executedQty = 0;
-
+        let executedQty = 0
+ 
         for (let i=0; i<this.asks.length; i++) {
-            if (this.asks[i].price <= order.price && executedQty < order.quantity) {
+        
+            // self trade prevention
+            
+            if (this.asks[i].userId === order.userId) {
+                continue
+            }
+
+       
+            if ( this.asks[i].price <= order.price && executedQty < order.quantity) {
                 const filledQty = Math.min((order.quantity - executedQty), this.asks[i].quantity)
-                executedQty += filledQty;
+                executedQty += filledQty
                 this.asks[i].filled += filledQty;
                 fills.push({
                     price : this.asks[i].price.toString(),
                     qty : filledQty,
-                    tradeId : this.lastTradeId++,
-                    otherUserId : this.asks[i].userId,
+                    tradeId: this.lastTradeId++,
+                    otherUserId: this.asks[i].userId,
                     markerOrderId : this.asks[i].orderId
                 })
             }
         }
 
-        for (let i=0; i<this.asks.length; i++){
+        for (let i=0; i<this.asks.length; i++) {
             if (this.asks[i].filled === this.asks[i].quantity) {
-                this.asks.splice(i, 1);
+                this.asks.splice(i,1);
                 i--;
             }
         }
@@ -123,28 +134,35 @@ export class Orderbook {
     matchAsk(order : Order) : {fills : Fill[], executedQty: number} {
         const fills: Fill[] = []
         let executedQty = 0;
-
-        for (let i=0; i<this.bids.length; i++) {
-            if (this.bids[i].price >= order.price && executedQty < order.quantity) {
-                const amountRemaining = Math.min(order.quantity - executedQty, this.bids[i].quantity)
-                executedQty += amountRemaining;
-                this.bids[i].filled += amountRemaining;
+ 
+ 
+        for (let i=0; i < this.bids.length;i++) {
+            
+            if (this.bids[i].userId === order.userId) {
+                continue
+            }
+            
+            if (this.bids[i].price >= order.price && executedQty < order.quantity){
+                const filledBids = Math.min(order.quantity - executedQty, this.bids[i].quantity)
+                executedQty += filledBids;
+                this.bids[i].filled += filledBids;
                 fills.push({
                     price : this.bids[i].price.toString(),
-                    qty : amountRemaining,
+                    qty: filledBids,
                     tradeId : this.lastTradeId++,
-                    otherUserId : this.bids[i].userId,
-                    markerOrderId : this.bids[i].orderId
+                    otherUserId: this.bids[i].userId,
+                    markerOrderId: this.bids[i].orderId
                 })
             }
         }
-        for (let i=0; i<this.bids.length; i++) {
-            if (this.bids[i].filled === this.bids[i].quantity){
-                this.bids.splice(i,1);
+
+        for (let i=0;i<this.bids.length; i++){
+            if (this.bids[i].filled === this.bids[i].quantity) {
+                this.bids.splice(i,1)
                 i--;
             }
         }
-  
+
         return {
             fills,
             executedQty

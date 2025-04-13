@@ -59,6 +59,10 @@ class Orderbook {
         const fills = [];
         let executedQty = 0;
         for (let i = 0; i < this.asks.length; i++) {
+            // self trade prevention
+            if (this.asks[i].userId === order.userId) {
+                continue;
+            }
             if (this.asks[i].price <= order.price && executedQty < order.quantity) {
                 const filledQty = Math.min((order.quantity - executedQty), this.asks[i].quantity);
                 executedQty += filledQty;
@@ -87,13 +91,16 @@ class Orderbook {
         const fills = [];
         let executedQty = 0;
         for (let i = 0; i < this.bids.length; i++) {
+            if (this.bids[i].userId === order.userId) {
+                continue;
+            }
             if (this.bids[i].price >= order.price && executedQty < order.quantity) {
-                const amountRemaining = Math.min(order.quantity - executedQty, this.bids[i].quantity);
-                executedQty += amountRemaining;
-                this.bids[i].filled += amountRemaining;
+                const filledBids = Math.min(order.quantity - executedQty, this.bids[i].quantity);
+                executedQty += filledBids;
+                this.bids[i].filled += filledBids;
                 fills.push({
                     price: this.bids[i].price.toString(),
-                    qty: amountRemaining,
+                    qty: filledBids,
                     tradeId: this.lastTradeId++,
                     otherUserId: this.bids[i].userId,
                     markerOrderId: this.bids[i].orderId
