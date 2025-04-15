@@ -1,8 +1,10 @@
 import { RedisManager } from "../RedisManager"
-import { CREATE_ORDER, CreateOrderMessageFromApi } from "../types/fromApi"
+import { AllMessages } from "../types";
+import { CANCEL_ORDER, CREATE_ORDER, CreateOrderMessageFromApi, MessageTypeToENgine } from "../types/fromApi";
 import { Fill, Order, Orderbook } from "./Orderbook"
 
 export const BASE_CURRENCY = "INR";
+
 
 interface UserBalance {
     // index signuture
@@ -23,7 +25,7 @@ export class Engine {
         this.setBaseBalances()
     }
 
-    process ({ message, clientId }: {message: CreateOrderMessageFromApi, clientId: string}) {
+    process ({ message, clientId }: {message: MessageTypeToENgine, clientId: string}) {
         
         switch (message.type) {
             case CREATE_ORDER:
@@ -53,7 +55,69 @@ export class Engine {
                         }
                     })
                 }
-                
+                break;
+            case CANCEL_ORDER:
+                try {
+
+                    const orderId = message.data.orderId
+                    const cancelMarket = message.data.market
+                    const cancelOrderBook = this.orderbooks.find(o => o.ticker() === cancelMarket)
+                    const quoteAsset = cancelMarket.split("_")[1]
+
+                    if (!cancelOrderBook) {
+                        throw new Error("No orderbook found")
+                    }
+
+                    console.log(orderId);
+                    
+
+                    const order = cancelOrderBook.asks.find(o => o.orderId === orderId) || cancelOrderBook.bids.find(o => o.orderId === orderId)
+                    console.log(order);
+                    
+                    if (!order) {
+                        console.log("No order found");
+                        throw new Error("No order found")    
+                    }
+
+                    if (order.side === "buy") {
+                        const price = cancelOrderBook.cancelBid(order)
+                        const leftQuantity = (order.quantity - order.filled) * order.price
+                        //@ts-ignore
+                        this.balances.get(order.userId)[BASE_CURRENCY].available += leftQuantity
+                        //@ts-ignore
+                        this.balances.get(order.userId)[BASE_CURRENCY].locked -= leftQuantity
+                        if (price) {
+
+                        }
+                    } else {
+                        const price = cancelOrderBook.cancelAsk(order);
+                        const leftQuantity = order.quantity - order.filled;
+                        //@ts-ignore
+                        this.balances.get(order.userId)[quoteAsset].available += leftQuantity;
+                        //@ts-ignore
+                        this.balances.get(order.userId)[quoteAsset].locked -= leftQuantity;
+                        if (price) {
+
+                        }
+                    }
+
+                    console.log(this.orderbooks);
+                    
+                    RedisManager.getInstace().sendToApi(clientId, {
+                        type : "ORDER_CANCELLED",
+                        payload: {
+                            orderId,
+                            executedQty: 0,
+                            remainingQty: 0
+                        }
+                    })
+
+                } catch(e) {
+                    console.log("Error hwile cancelling order", );
+                    console.log(e);
+                }
+                break;
+            
         }
     }
 

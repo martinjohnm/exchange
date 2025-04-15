@@ -10,8 +10,10 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@exchange/shared-types": "file:../shared-types",
     "@types/redis": "^4.0.10",
-    "redis": "^4.7.0"
+    "redis": "^4.7.0",
+    "shared-types": "file:../shared-types"
   },
   "devDependencies": {
     "ts-node": "^10.9.2",
