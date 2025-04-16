@@ -98,7 +98,6 @@ export class Orderbook {
         for (let i=0; i<this.asks.length; i++) {
         
             // self trade prevention
-            
             if (this.asks[i].userId === order.userId) {
                 continue
             }
@@ -138,6 +137,7 @@ export class Orderbook {
  
         for (let i=0; i < this.bids.length;i++) {
             
+            // self trade prevention
             if (this.bids[i].userId === order.userId) {
                 continue
             }

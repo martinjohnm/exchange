@@ -1,6 +1,6 @@
 import { RedisManager } from "../RedisManager"
 import { AllMessages } from "../types";
-import { CANCEL_ORDER, CREATE_ORDER, CreateOrderMessageFromApi, MessageTypeToENgine } from "../types/fromApi";
+import { CANCEL_ORDER, CREATE_ORDER, CreateOrderMessageFromApi, MessageTypeToENgine, OrderType } from "../types/fromApi";
 import { Fill, Order, Orderbook } from "./Orderbook"
 
 export const BASE_CURRENCY = "INR";
@@ -147,8 +147,9 @@ export class Engine {
 
         const { fills, executedQty } = orderbook.addOrder(order)
         
+        const orderPrice = order.price
         
-        this.updateBalance(userId, baseAsset, quoteAsset, side, fills, executedQty);
+        this.updateBalance(userId, baseAsset, quoteAsset, side, fills, executedQty, orderPrice);
         
         console.log("balance book after trade", this.balances);
 
@@ -185,25 +186,30 @@ export class Engine {
         }
     }
 
-    updateBalance(userId: string, baseAsset: string, quoteAsset: string, side: "buy"|"sell", fills: Fill[], executedQty: number) {
+    updateBalance(userId: string, baseAsset: string, quoteAsset: string, side: "buy"|"sell", fills: Fill[], executedQty: number, orderPrice : number) {
+        
         if (side === "buy") {
             fills.forEach(fill => {
                 // Update quote asset balance
           
                 //@ts-ignore
                 
-                this.balances.get(fill.otherUserId)[quoteAsset].available = this.balances.get(fill.otherUserId)?.[quoteAsset].available + (fill.qty * fill.price);
+
+                // Note: fill.price is the price of the asset from the orderbooks bids which may or may not be equal to the buying price
+                // but we always need to substract the price from the otherusers baseasset locked balance
+
+                this.balances.get(fill.otherUserId)[quoteAsset].available = this.balances.get(fill.otherUserId)?.[quoteAsset].available + (Number(fill.qty) * Number(orderPrice));
 
                 //@ts-ignore
-                this.balances.get(userId)[quoteAsset].locked = this.balances.get(userId)?.[quoteAsset].locked - (fill.qty * fill.price);
+                this.balances.get(userId)[quoteAsset].locked = this.balances.get(userId)?.[quoteAsset].locked - (Number(fill.qty) * Number(orderPrice));
 
                 // Update base asset balance
 
                 //@ts-ignore
-                this.balances.get(fill.otherUserId)[baseAsset].locked = this.balances.get(fill.otherUserId)?.[baseAsset].locked - fill.qty*fill.price;
+                this.balances.get(fill.otherUserId)[baseAsset].locked = this.balances.get(fill.otherUserId)?.[baseAsset].locked - (Number(fill.qty)*Number(fill.price));
 
                 //@ts-ignore
-                this.balances.get(userId)[baseAsset].available = this.balances.get(userId)?.[baseAsset].available + fill.qty*fill.price;
+                this.balances.get(userId)[baseAsset].available = this.balances.get(userId)?.[baseAsset].available + (Number(fill.qty)*Number(orderPrice));
 
             });
             
@@ -212,21 +218,24 @@ export class Engine {
             
             fills.forEach(fill => {
                 // Update quote asset balance
-        
-                //@ts-ignore
-                    
-                this.balances.get(fill.otherUserId)[quoteAsset].locked = this.balances.get(fill.otherUserId)?.[quoteAsset].locked - (fill.qty * fill.price);
+
+                // Note: fill.price is the price of the asset from the orderbooks bids which may or may not be equal to the selling price
+                // but we always need to substract the current order price from the users baseasset
 
                 //@ts-ignore
-                this.balances.get(userId)[quoteAsset].available = this.balances.get(userId)?.[quoteAsset].available + (fill.qty * fill.price);
+                    
+                this.balances.get(fill.otherUserId)[quoteAsset].locked = this.balances.get(fill.otherUserId)?.[quoteAsset].locked - (Number(fill.qty) * Number(fill.price));
+
+                //@ts-ignore
+                this.balances.get(userId)[quoteAsset].available = this.balances.get(userId)?.[quoteAsset].available + (Number(fill.qty) * Number(fill.price));
 
                 // Update base asset balance
 
                 //@ts-ignore
-                this.balances.get(fill.otherUserId)[baseAsset].available = this.balances.get(fill.otherUserId)?.[baseAsset].available + (fill.qty * fill.price);
+                this.balances.get(fill.otherUserId)[baseAsset].available = this.balances.get(fill.otherUserId)?.[baseAsset].available + (Number(fill.qty) * Number(fill.price));
 
                 //@ts-ignore
-                this.balances.get(userId)[baseAsset].locked = this.balances.get(userId)?.[baseAsset].locked - (fill.qty * fill.price);
+                this.balances.get(userId)[baseAsset].locked = this.balances.get(userId)?.[baseAsset].locked - (Number(fill.qty) * Number(orderPrice));
 
             });
         }
