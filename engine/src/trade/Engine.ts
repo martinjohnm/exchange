@@ -62,7 +62,6 @@ export class Engine {
                     const orderId = message.data.orderId
                     const cancelMarket = message.data.market
                     const cancelOrderBook = this.orderbooks.find(o => o.ticker() === cancelMarket)
-                    const quoteAsset = cancelMarket.split("_")[1]
 
                     if (!cancelOrderBook) {
                         throw new Error("No orderbook found")
