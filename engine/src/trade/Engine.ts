@@ -83,25 +83,27 @@ export class Engine {
                         const price = cancelOrderBook.cancelBid(order)
                         const leftQuantity = (order.quantity - order.filled) * order.price
                         //@ts-ignore
-                        this.balances.get(order.userId)[BASE_CURRENCY].available += leftQuantity
+                        this.balances.get(order.userId)[cancelOrderBook.quoteAsset].available += leftQuantity
                         //@ts-ignore
-                        this.balances.get(order.userId)[BASE_CURRENCY].locked -= leftQuantity
+                        this.balances.get(order.userId)[cancelOrderBook.quoteAsset].locked -= leftQuantity
                         if (price) {
 
                         }
                     } else {
                         const price = cancelOrderBook.cancelAsk(order);
-                        const leftQuantity = order.quantity - order.filled;
+                        const leftQuantity = (order.quantity - order.filled) * order.price;
                         //@ts-ignore
-                        this.balances.get(order.userId)[quoteAsset].available += leftQuantity;
+                        this.balances.get(order.userId)[cancelOrderBook.baseAsset].available += leftQuantity;
                         //@ts-ignore
-                        this.balances.get(order.userId)[quoteAsset].locked -= leftQuantity;
+                        this.balances.get(order.userId)[cancelOrderBook.baseAsset].locked -= leftQuantity;
                         if (price) {
 
                         }
                     }
 
                     console.log(this.orderbooks);
+                    console.log(this.balances);
+                    
                     
                     RedisManager.getInstace().sendToApi(clientId, {
                         type : "ORDER_CANCELLED",
@@ -119,6 +121,10 @@ export class Engine {
                 break;
             
         }
+    }
+
+    addOrderBook(orderbook: Orderbook) {
+        this.orderbooks.push(orderbook)
     }
 
     createOrder (market: string, price: string, quantity: string, side: "buy" | "sell", userId: string) {
