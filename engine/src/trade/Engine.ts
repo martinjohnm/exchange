@@ -114,7 +114,7 @@ export class Engine {
                     })
 
                 } catch(e) {
-                    console.log("Error hwile cancelling order", );
+                    console.log("Error while cancelling order", );
                     console.log(e);
                 }
                 break;
