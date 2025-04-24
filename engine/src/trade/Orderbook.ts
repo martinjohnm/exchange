@@ -73,7 +73,7 @@ export class Orderbook {
             }
             this.bids.push(order);
             // add the pushed quantiy for the price to depth
-            this.updateDepth("bids",order.quantity, String(order.price), "add")
+            this.updateDepth("bids",(order.quantity-order.filled), String(order.price), "add")
             console.log(this.bidsDepth, this.asksDepth);
                 
             return {
@@ -97,7 +97,7 @@ export class Orderbook {
             }
             this.asks.push(order);
             // add the pushed quantiy for the price to depth
-            this.updateDepth("asks",order.quantity, String(order.price), "add")
+            this.updateDepth("asks",(order.quantity-order.filled), String(order.price), "add")
             console.log(this.bidsDepth, this.asksDepth);            
             return {
                 executedQty,
@@ -125,7 +125,7 @@ export class Orderbook {
 
        
             if ( this.asks[i].price <= order.price && executedQty < order.quantity) {
-                const filledQty = Math.min((order.quantity - executedQty), this.asks[i].quantity)
+                const filledQty = Math.min((order.quantity - executedQty), this.asks[i].quantity-this.asks[i].filled)
                 executedQty += filledQty
                 this.asks[i].filled += filledQty;
                 // subtract the filled quantities in depthMap
@@ -167,7 +167,7 @@ export class Orderbook {
             }
             
             if (this.bids[i].price >= order.price && executedQty < order.quantity){
-                const filledBids = Math.min(order.quantity - executedQty, this.bids[i].quantity)
+                const filledBids = Math.min(order.quantity - executedQty, this.bids[i].quantity-this.bids[i].filled)
                 executedQty += filledBids;
                 this.bids[i].filled += filledBids;
                 // subtract the filled quantities in depthMap

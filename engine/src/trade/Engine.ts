@@ -138,7 +138,7 @@ export class Engine {
 
         this.checkAndLockFunds(baseAsset, quoteAsset, side, userId,  price, quantity)
 
-        // console.log("balance book during trade", this.balances);
+        console.log("balance book during trade", this.balances);
         
 
         const order: Order = {
@@ -156,9 +156,9 @@ export class Engine {
         
         this.updateBalance(userId, baseAsset, quoteAsset, side, fills, executedQty, orderPrice);
         
-        // console.log("balance book after trade", this.balances);
+        console.log("balance book after trade", this.balances);
 
-        // console.log(this.orderbooks);
+        console.log(this.orderbooks);
         
  
         return {
