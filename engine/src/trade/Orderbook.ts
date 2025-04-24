@@ -22,6 +22,8 @@ export interface Fill {
 export class Orderbook {
     bids : Order[];
     asks : Order[];
+    bidsDepth: Map<string, number>;
+    asksDepth: Map<string, number>;
     baseAsset : string;
     quoteAsset : string = BASE_CURRENCY;
     lastTradeId : number;
@@ -30,6 +32,8 @@ export class Orderbook {
     constructor(baseAsset: string, bids: Order[], asks: Order[], lastTradeId : number, currentPrice : number) {
         this.bids = bids
         this.asks = asks
+        this.bidsDepth = new Map()
+        this.asksDepth = new Map()
         this.baseAsset = baseAsset
         this.lastTradeId = lastTradeId
         this.currentPrice = currentPrice
@@ -56,7 +60,15 @@ export class Orderbook {
         if (order.side == "buy") {
             const {executedQty, fills } = this.matchBid(order)
             order.filled = executedQty
+            
+           
+            // const current = this.bidsDepth.get(String(order.price)) ?? 0
+            // this.bidsDepth.set(String(order.price), current+ order.quantity)
+            
+            // check if the full quantity matched then return other wise add it to bids and return
             if (executedQty === order.quantity) {
+                console.log(this.bidsDepth, this.asksDepth);
+                
                 return {
                     executedQty, 
                     fills
@@ -64,6 +76,10 @@ export class Orderbook {
 
             }
             this.bids.push(order);
+            // add the pushed quantiy for the price to depth
+            this.updateDepth("bids",order.quantity, String(order.price), "add")
+            console.log(this.bidsDepth, this.asksDepth);
+                
             return {
                 executedQty, 
                 fills
@@ -72,19 +88,30 @@ export class Orderbook {
         } else {
             const {executedQty, fills} = this.matchAsk(order);
             order.filled = executedQty;
+           
+            // const current = this.asksDepth.get(String(order.price)) ?? 0
+            // this.asksDepth.set(String(order.price), current + order.quantity)
+            
+            // check if the full qunty matched then return otherwise add it to asks and return
             if (executedQty === order.quantity) {
+                    console.log(this.bidsDepth,this.asksDepth);
+                    
                 return {
                     executedQty, 
                     fills
                 }
             }
             this.asks.push(order);
+            // add the pushed quantiy for the price to depth
+            this.updateDepth("asks",order.quantity, String(order.price), "add")
+            console.log(this.bidsDepth, this.asksDepth);            
             return {
                 executedQty,
                 fills
             }
         }
 
+        
         
         
 
@@ -107,6 +134,8 @@ export class Orderbook {
                 const filledQty = Math.min((order.quantity - executedQty), this.asks[i].quantity)
                 executedQty += filledQty
                 this.asks[i].filled += filledQty;
+                // subtract the filled quantities in depthMap
+                this.updateDepth("asks",filledQty, String(this.asks[i].price),"substract")
                 fills.push({
                     price : this.asks[i].price.toString(),
                     qty : filledQty,
@@ -114,6 +143,7 @@ export class Orderbook {
                     otherUserId: this.asks[i].userId,
                     markerOrderId : this.asks[i].orderId
                 })
+            
             }
         }
 
@@ -146,6 +176,8 @@ export class Orderbook {
                 const filledBids = Math.min(order.quantity - executedQty, this.bids[i].quantity)
                 executedQty += filledBids;
                 this.bids[i].filled += filledBids;
+                // subtract the filled quantities in depthMap
+                this.updateDepth("bids",filledBids, String(this.bids[i].price),"substract")
                 fills.push({
                     price : this.bids[i].price.toString(),
                     qty: filledBids,
@@ -153,6 +185,8 @@ export class Orderbook {
                     otherUserId: this.bids[i].userId,
                     markerOrderId: this.bids[i].orderId
                 })
+
+          
             }
         }
 
@@ -166,6 +200,86 @@ export class Orderbook {
         return {
             fills,
             executedQty
+        }
+    }
+
+
+    updateDepth(sideType: "bids"|"asks", quantity: number, price: string, type: "add"|"substract") {
+
+        
+
+        if (sideType == "bids") {
+
+            if (type == "add" ){
+                const current = this.bidsDepth.get(price) ?? 0
+                this.bidsDepth.set(price, current+ quantity)
+                
+            } else {
+                const current = this.bidsDepth.get(price) ?? 0
+                const newQty = current - quantity
+                if (newQty > 0) {
+                    this.bidsDepth.set(price, newQty)
+                } else {
+                    this.bidsDepth.delete(price)
+                }
+            }
+            
+
+        } else {
+            if (type == "add") {
+                const current = this.asksDepth.get(price) ?? 0;
+                this.asksDepth.set(price, current+quantity)
+            } else {
+                const current = this.asksDepth.get(price)??0;
+                const newQty = current-quantity;
+                if (newQty>0){
+                    this.asksDepth.set(price, newQty)
+                } else {
+                    this.asksDepth.delete(price)
+                }
+            }
+        }
+
+    }
+
+    getDepth() {
+        const bids: [string, string][] = [];
+        const asks: [string, string][] = [];
+
+        const bidsObj: {[key: string]: number} = {}
+        const askObj: {[key: string]: number} = {}
+
+        for (let i =0; i< this.bids.length; i++) {
+            const order = this.bids[i]
+            if (!bidsObj[order.price]) {
+                bidsObj[order.price] = 0;
+            } 
+
+            bidsObj[order.price] += order.quantity;
+            
+
+        }
+
+        for (let i = 0; i< this.asks.length; i++) {
+            const order = this.asks[i];
+            if (!askObj[order.price]) {
+                askObj[order.price] = 0
+            } 
+            askObj[order.price] += order.quantity;
+            
+        }
+
+        for (const price in bidsObj) {
+            bids.push([price, bidsObj[price].toString()])
+        }
+
+        for (const price in askObj) {
+            asks.push([price, askObj[price].toString()])
+        }
+
+        return {
+            bids,
+            asks
         }
     }
 

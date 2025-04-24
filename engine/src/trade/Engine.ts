@@ -67,11 +67,11 @@ export class Engine {
                         throw new Error("No orderbook found")
                     }
 
-                    console.log(orderId);
+                    // console.log(orderId);
                     
 
                     const order = cancelOrderBook.asks.find(o => o.orderId === orderId) || cancelOrderBook.bids.find(o => o.orderId === orderId)
-                    console.log(order);
+                    // console.log(order);
                     
                     if (!order) {
                         console.log("No order found");
@@ -100,8 +100,8 @@ export class Engine {
                         }
                     }
 
-                    console.log(this.orderbooks);
-                    console.log(this.balances);
+                    // console.log(this.orderbooks);
+                    // console.log(this.balances);
                     
                     
                     RedisManager.getInstace().sendToApi(clientId, {
@@ -115,7 +115,7 @@ export class Engine {
 
                 } catch(e) {
                     console.log("Error while cancelling order", );
-                    console.log(e);
+                    //console.log(e);
                 }
                 break;
             
@@ -138,7 +138,7 @@ export class Engine {
 
         this.checkAndLockFunds(baseAsset, quoteAsset, side, userId,  price, quantity)
 
-        console.log("balance book during trade", this.balances);
+        // console.log("balance book during trade", this.balances);
         
 
         const order: Order = {
@@ -156,9 +156,9 @@ export class Engine {
         
         this.updateBalance(userId, baseAsset, quoteAsset, side, fills, executedQty, orderPrice);
         
-        console.log("balance book after trade", this.balances);
+        // console.log("balance book after trade", this.balances);
 
-        console.log(this.orderbooks);
+        // console.log(this.orderbooks);
         
  
         return {
@@ -219,7 +219,7 @@ export class Engine {
             });
             
         } else {
-            console.log(fills);
+            // console.log(fills);
             
             fills.forEach(fill => {
                 // Update quote asset balance
