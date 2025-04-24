@@ -61,10 +61,6 @@ export class Orderbook {
             const {executedQty, fills } = this.matchBid(order)
             order.filled = executedQty
             
-           
-            // const current = this.bidsDepth.get(String(order.price)) ?? 0
-            // this.bidsDepth.set(String(order.price), current+ order.quantity)
-            
             // check if the full quantity matched then return other wise add it to bids and return
             if (executedQty === order.quantity) {
                 console.log(this.bidsDepth, this.asksDepth);
@@ -89,9 +85,7 @@ export class Orderbook {
             const {executedQty, fills} = this.matchAsk(order);
             order.filled = executedQty;
            
-            // const current = this.asksDepth.get(String(order.price)) ?? 0
-            // this.asksDepth.set(String(order.price), current + order.quantity)
-            
+      
             // check if the full qunty matched then return otherwise add it to asks and return
             if (executedQty === order.quantity) {
                     console.log(this.bidsDepth,this.asksDepth);
@@ -206,8 +200,6 @@ export class Orderbook {
 
     updateDepth(sideType: "bids"|"asks", quantity: number, price: string, type: "add"|"substract") {
 
-        
-
         if (sideType == "bids") {
 
             if (type == "add" ){
@@ -216,6 +208,7 @@ export class Orderbook {
                 
             } else {
                 const current = this.bidsDepth.get(price) ?? 0
+                // check if the final quantity is not zero if it is remove it from the corresponding map
                 const newQty = current - quantity
                 if (newQty > 0) {
                     this.bidsDepth.set(price, newQty)
@@ -230,7 +223,8 @@ export class Orderbook {
                 const current = this.asksDepth.get(price) ?? 0;
                 this.asksDepth.set(price, current+quantity)
             } else {
-                const current = this.asksDepth.get(price)??0;
+                const current = this.asksDepth.get(price) ?? 0
+                // check if the final quantity is not zero if it is remove it from the corresponding map
                 const newQty = current-quantity;
                 if (newQty>0){
                     this.asksDepth.set(price, newQty)
@@ -243,38 +237,14 @@ export class Orderbook {
     }
 
     getDepth() {
-        const bids: [string, string][] = [];
-        const asks: [string, string][] = [];
-
-        const bidsObj: {[key: string]: number} = {}
-        const askObj: {[key: string]: number} = {}
-
-        for (let i =0; i< this.bids.length; i++) {
-            const order = this.bids[i]
-            if (!bidsObj[order.price]) {
-                bidsObj[order.price] = 0;
-            } 
-
-            bidsObj[order.price] += order.quantity;
-            
-
+        const bids: [string, number][] = [];
+        const asks: [string, number][] = [];
+        for (const price in this.bidsDepth) {
+            bids.push([price, this.bidsDepth.get(price) ?? 0])
         }
 
-        for (let i = 0; i< this.asks.length; i++) {
-            const order = this.asks[i];
-            if (!askObj[order.price]) {
-                askObj[order.price] = 0
-            } 
-            askObj[order.price] += order.quantity;
-            
-        }
-
-        for (const price in bidsObj) {
-            bids.push([price, bidsObj[price].toString()])
-        }
-
-        for (const price in askObj) {
-            asks.push([price, askObj[price].toString()])
+        for (const price in this.asksDepth) {
+            asks.push([price, this.asksDepth.get(price) ?? 0])
         }
 
         return {
