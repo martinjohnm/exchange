@@ -257,6 +257,8 @@ export class Orderbook {
         const index = this.bids.findIndex(x => x.orderId === order.orderId)
         if (index !== -1) {
             const price = this.bids[index].price;
+            // decrease the cancelled bid quantiy from depth
+            this.updateDepth("bids", this.bids[index].quantity, String(price), "substract")
             this.bids.splice(index,1)
             return price
         }
@@ -267,6 +269,8 @@ export class Orderbook {
         const index = this.asks.findIndex(x => x.orderId === order.orderId)
         if (index !== -1) {
             const price = this.asks[index].price;
+            // decrease the cancelled ask quantiy from depth
+            this.updateDepth("asks", this.asks[index].quantity, String(price), "substract")
             this.asks.splice(index,1)
             return price
         }

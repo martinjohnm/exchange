@@ -151,10 +151,7 @@ export class Engine {
         }
 
         const { fills, executedQty } = orderbook.addOrder(order)
-        
-        const orderPrice = order.price
-        
-        this.updateBalance(userId, baseAsset, quoteAsset, side, fills, executedQty, orderPrice);
+        this.updateBalance(userId, baseAsset, quoteAsset, side, fills, executedQty, order.price);
         
         console.log("balance book after trade", this.balances);
 
