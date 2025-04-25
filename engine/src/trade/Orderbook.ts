@@ -72,7 +72,7 @@ export class Orderbook {
 
             }
             this.bids.push(order);
-            // add the pushed quantiy for the price to depth
+            // add the unfilled quantiy for the price to bids depth
             this.updateDepth("bids",(order.quantity-order.filled), String(order.price), "add")
             console.log(this.bidsDepth, this.asksDepth);
                 
@@ -96,7 +96,7 @@ export class Orderbook {
                 }
             }
             this.asks.push(order);
-            // add the pushed quantiy for the price to depth
+            // add the unfilled quantiy for the price to asks depth
             this.updateDepth("asks",(order.quantity-order.filled), String(order.price), "add")
             console.log(this.bidsDepth, this.asksDepth);            
             return {
