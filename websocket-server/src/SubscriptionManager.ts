@@ -62,6 +62,6 @@ export class SubscriptionManager {
     }
 
     getSubscriptions(userId: string) {
-
+        return this.subscriptions.get(userId) || [];
     }
 }
