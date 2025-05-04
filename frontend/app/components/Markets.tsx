@@ -46,8 +46,8 @@ function MarketHeader() {
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
+                strokeLinecap="round"
+                strokeLinejoin="round"
                 className="lucide lucide-arrow-down h-4 w-4"
               >
                 <path d="M12 5v14"></path>

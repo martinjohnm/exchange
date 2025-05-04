@@ -9,7 +9,7 @@ export function TradeView({
   
   return (
     <>
-      <div ref={chartRef} className="bg-red-200" style={{ height: "520px", width: "100%", marginTop: 4 }}></div>
+      <div ref={chartRef} className="" style={{ height: "520px", width: "100%", marginTop: 4 }}></div>
     </>
   );
 }

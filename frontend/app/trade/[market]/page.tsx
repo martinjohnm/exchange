@@ -2,9 +2,9 @@
 
 import { MarketBar } from "@/app/components/MarketBar";
 import { useParams } from "next/navigation";
-import { TradeView } from "../components/TradeView";
-import { Depth } from "../components/depth/Depth";
-import { SwapUI } from "../components/SwapUI";
+import { TradeView } from "../../components/TradeView";
+import { Depth } from "../../components/depth/Depth";
+import { SwapUI } from "../../components/SwapUI";
 
 export default function Page() {
     const { market } = useParams();
