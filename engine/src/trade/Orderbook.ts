@@ -22,8 +22,8 @@ export interface Fill {
 export class Orderbook {
     bids : Order[];
     asks : Order[];
-    bidsDepth: Map<string, number>;
-    asksDepth: Map<string, number>;
+    bidsDepth: Map<string, string>;
+    asksDepth: Map<string, string>;
     baseAsset : string;
     quoteAsset : string = BASE_CURRENCY;
     lastTradeId : number;
@@ -63,7 +63,7 @@ export class Orderbook {
             
             // check if the full quantity matched then return other wise add it to bids and return
             if (executedQty === order.quantity) {
-                console.log(this.bidsDepth, this.asksDepth);
+                // console.log(this.bidsDepth, this.asksDepth);
                 
                 return {
                     executedQty, 
@@ -74,7 +74,7 @@ export class Orderbook {
             this.bids.push(order);
             // add the unfilled quantiy for the price to bids depth
             this.updateDepth("bids",(order.quantity-order.filled), String(order.price), "add")
-            console.log(this.bidsDepth, this.asksDepth);
+            // console.log(this.bidsDepth, this.asksDepth);
                 
             return {
                 executedQty, 
@@ -88,7 +88,7 @@ export class Orderbook {
       
             // check if the full qunty matched then return otherwise add it to asks and return
             if (executedQty === order.quantity) {
-                    console.log(this.bidsDepth,this.asksDepth);
+                    // console.log(this.bidsDepth,this.asksDepth);
                     
                 return {
                     executedQty, 
@@ -98,7 +98,7 @@ export class Orderbook {
             this.asks.push(order);
             // add the unfilled quantiy for the price to asks depth
             this.updateDepth("asks",(order.quantity-order.filled), String(order.price), "add")
-            console.log(this.bidsDepth, this.asksDepth);            
+            // console.log(this.bidsDepth, this.asksDepth);            
             return {
                 executedQty,
                 fills
@@ -137,7 +137,11 @@ export class Orderbook {
                     otherUserId: this.asks[i].userId,
                     markerOrderId : this.asks[i].orderId
                 })
+
+                this.currentPrice = this.asks[i].price
             
+                console.log(this.currentPrice);
+                
             }
         }
 
@@ -180,7 +184,9 @@ export class Orderbook {
                     markerOrderId: this.bids[i].orderId
                 })
 
-          
+                this.currentPrice = this.bids[i].price
+                console.log(this.currentPrice);
+
             }
         }
 
@@ -204,14 +210,14 @@ export class Orderbook {
 
             if (type == "add" ){
                 const current = this.bidsDepth.get(price) ?? 0
-                this.bidsDepth.set(price, current+ quantity)
+                this.bidsDepth.set(price, String(Number(current)+ Number(quantity)))
                 
             } else {
                 const current = this.bidsDepth.get(price) ?? 0
                 // check if the final quantity is not zero if it is remove it from the corresponding map
-                const newQty = current - quantity
+                const newQty = Number(current) - quantity
                 if (newQty > 0) {
-                    this.bidsDepth.set(price, newQty)
+                    this.bidsDepth.set(price, String(newQty))
                 } else {
                     this.bidsDepth.delete(price)
                 }
@@ -221,13 +227,13 @@ export class Orderbook {
         } else {
             if (type == "add") {
                 const current = this.asksDepth.get(price) ?? 0;
-                this.asksDepth.set(price, current+quantity)
+                this.asksDepth.set(price, String(Number(current)+Number(quantity)))
             } else {
                 const current = this.asksDepth.get(price) ?? 0
                 // check if the final quantity is not zero if it is remove it from the corresponding map
-                const newQty = current-quantity;
+                const newQty = Number(current)-quantity;
                 if (newQty>0){
-                    this.asksDepth.set(price, newQty)
+                    this.asksDepth.set(price, String(newQty))
                 } else {
                     this.asksDepth.delete(price)
                 }
@@ -237,19 +243,11 @@ export class Orderbook {
     }
 
     getDepth() {
-        const bids: [string, number][] = [];
-        const asks: [string, number][] = [];
-        for (const price in this.bidsDepth) {
-            bids.push([price, this.bidsDepth.get(price) ?? 0])
-        }
-
-        for (const price in this.asksDepth) {
-            asks.push([price, this.asksDepth.get(price) ?? 0])
-        }
-
+        
         return {
-            bids,
-            asks
+            bids : Array.from(this.bidsDepth),
+            price: this.currentPrice.toString(),
+            asks : Array.from(this.asksDepth)
         }
     }
 

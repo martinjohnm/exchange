@@ -1,6 +1,6 @@
 import { RedisManager } from "../RedisManager"
 import { AllMessages } from "../types";
-import { CANCEL_ORDER, CREATE_ORDER, CreateOrderMessageFromApi, MessageTypeToENgine, OrderType } from "../types/fromApi";
+import { CANCEL_ORDER, CREATE_ORDER, CreateOrderMessageFromApi, GET_DEPTH, GET_TICKER, MessageTypeToENgine, OrderType } from "../types/fromApi";
 import { Fill, Order, Orderbook } from "./Orderbook"
 
 export const BASE_CURRENCY = "INR";
@@ -25,7 +25,7 @@ export class Engine {
         this.setBaseBalances()
     }
 
-    process ({ message, clientId }: {message: MessageTypeToENgine, clientId: string}) {
+    process ({ message, clientId }: {message: any, clientId: string}) {
         
         switch (message.type) {
             case CREATE_ORDER:
@@ -41,6 +41,7 @@ export class Engine {
                             fills
                         }
                     })
+                    
 
        
                 } catch(e) {
@@ -119,6 +120,54 @@ export class Engine {
                 }
                 break;
             
+            case GET_DEPTH:
+                try {
+                    const market = message.data.market;
+                    const orderbook = this.orderbooks.find(o => o.ticker() === market)
+                    if (!orderbook) {
+                        throw new Error('No orderbook found')
+                    }
+
+                    RedisManager.getInstace().sendToApi(clientId, {
+                        type: "DEPTH",
+                        payload: orderbook.getDepth()
+                    })
+                } catch(e) {
+                    console.log(e);
+                    RedisManager.getInstace().sendToApi(clientId, {
+                        type: "DEPTH",
+                        payload: {
+                            bids: [],
+                            price: "0",
+                            asks: []
+                        }
+                    });
+                }
+                break;
+
+            case GET_TICKER:
+            try {
+                const market = message.data.market;
+                const orderbook = this.orderbooks.find(o => o.ticker() === market)
+                if (!orderbook) {
+                    throw new Error('No orderbook found')
+                }
+
+                RedisManager.getInstace().sendToApi(clientId, {
+                    type: "DEPTH",
+                    payload: orderbook.getDepth()
+                })
+            } catch(e) {
+                console.log(e);
+                RedisManager.getInstace().sendToApi(clientId, {
+                    type: "DEPTH",
+                    payload: {
+                        bids: [],
+                        asks: []
+                    }
+                });
+            }
+            break;
         }
     }
 
@@ -138,7 +187,7 @@ export class Engine {
 
         this.checkAndLockFunds(baseAsset, quoteAsset, side, userId,  price, quantity)
 
-        console.log("balance book during trade", this.balances);
+        // console.log("balance book during trade", this.balances);
         
 
         const order: Order = {
@@ -152,10 +201,13 @@ export class Engine {
 
         const { fills, executedQty } = orderbook.addOrder(order)
         this.updateBalance(userId, baseAsset, quoteAsset, side, fills, executedQty, order.price);
-        
-        console.log("balance book after trade", this.balances);
+        this.publisWsDepthUpdates(market)
 
-        console.log(this.orderbooks);
+        console.log(orderbook.currentPrice);
+        
+        // console.log("balance book after trade", this.balances);
+
+        // console.log(this.orderbooks);
         
  
         return {
@@ -163,6 +215,77 @@ export class Engine {
             fills, 
             orderId : order.orderId
         }
+    }
+
+    publishWsTrades(fills: Fill[], userId: string, market: string) {
+        fills.forEach(fill => {
+            RedisManager.getInstace().publishMessage(`trade@${market}`, {
+                stream: `trade@${market}`,
+                data: {
+                    e: "trade",
+                    t: fill.tradeId,
+                    m: fill.otherUserId === userId , // need to check
+                    p: fill.price,
+                    q: fill.qty.toString(),
+                    s: market
+                }
+            })
+        })
+    }
+
+    publishWsDepthUpdates(market: string) {
+        const orderbook = this.orderbooks.find(o => o.ticker() === market);
+
+        if (!orderbook) {
+            return;
+        }
+
+        const depth = orderbook.getDepth();
+        RedisManager.getInstace().publishMessage(`depth@${market}`, {
+            stream: `depth@${market}`,
+            data: {
+                a: depth.asks,
+                b: depth.bids,
+                e: "depth"
+            }
+        })
+    
+    }
+
+    publisWsDepthUpdates(market: string) {
+        const orderbook = this.orderbooks.find(o => o.ticker() === market);
+        if (!orderbook) {
+            return;
+        }
+        const depth = orderbook.getDepth();
+
+        RedisManager.getInstace().publishMessage(`depth@${market}`, {
+            stream: `depth@${market}`,
+            data: {
+                a: depth.asks,
+                b: depth.bids,
+                e: "depth",
+                price: depth.price
+            }
+        });
+    
+    }
+
+    sendUpdatedDepthAt(price: string, market: string) {
+        const orderbook = this.orderbooks.find(o => o.ticker() === market);
+        if (!orderbook) {
+            return;
+        }
+        const depth = orderbook.getDepth();
+
+        RedisManager.getInstace().publishMessage(`depth@${market}`, {
+            stream: `depth@${market}`,
+            data: {
+                a: depth.asks,
+                b: depth.bids,
+                e: "depth"
+            }
+        });
     }
 
     checkAndLockFunds(baseAsset: string, quoteAsset: string, side: "buy"|"sell", userId: string, price: string, quantity: string) {
