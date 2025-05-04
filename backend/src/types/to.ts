@@ -1,4 +1,4 @@
-import { CANCEL_ORDER, CREATE_ORDER, GET_DEPTH, GET_OPEN_ORDERS, ON_RAMP } from "."
+import { CANCEL_ORDER, CREATE_ORDER, GET_DEPTH, GET_OPEN_ORDERS, GET_TICKER, ON_RAMP } from "."
 
 export interface CreateOrderMessageToEngine {
     type: typeof CREATE_ORDER
@@ -38,3 +38,10 @@ export interface GetOpenOrdersMessageToEngine {
         market: string
     }
 }
+
+export interface GetTickerMessageToEngine {
+    type: typeof GET_TICKER
+    data: {
+        market: string
+    }
+} 
