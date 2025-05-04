@@ -23,7 +23,10 @@ export class User {
 
     private addListeners() {
         this.ws.on("message", (message: string) => {
+            
             const parsedMessage: IncomingMessage = JSON.parse(message)
+            console.log(parsedMessage, "hai");
+            
             if (parsedMessage.method === SUBSCRIBE) {
                 parsedMessage.params.forEach(s => SubscriptionManager.getInstance().subscribe(this.id, s));
             }

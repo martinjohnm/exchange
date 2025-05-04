@@ -20,7 +20,8 @@ export type DepthUpdateMessage = {
         b?: [string, string][],
         a?: [string, string][],
         id: number,
-        e: "depth"
+        e: "depth",
+        price: string
     }
 }
 
