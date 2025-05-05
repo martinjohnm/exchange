@@ -1,5 +1,5 @@
 import { RedisManager } from "../RedisManager"
-import { AllMessages } from "../types";
+import { AllMessages, ORDER_UPDATE, TRADE_ADDED } from "../types";
 import { CANCEL_ORDER, CREATE_ORDER, CreateOrderMessageFromApi, GET_DEPTH, GET_TICKER, MessageTypeToENgine, OrderType } from "../types/fromApi";
 import { Fill, Order, Orderbook } from "./Orderbook"
 
@@ -187,7 +187,7 @@ export class Engine {
 
         this.checkAndLockFunds(baseAsset, quoteAsset, side, userId,  price, quantity)
 
-        // console.log("balance book during trade", this.balances);
+        console.log("balance book during trade", this.balances);
         
 
         const order: Order = {
@@ -202,12 +202,13 @@ export class Engine {
         const { fills, executedQty } = orderbook.addOrder(order)
         this.updateBalance(userId, baseAsset, quoteAsset, side, fills, executedQty, order.price);
         this.publisWsDepthUpdates(market)
-
-        console.log(orderbook.currentPrice);
+        this.createDbTrades(fills, market, userId);
+        this.updateDbOrders(order, executedQty, fills, market);
+        // console.log(orderbook.currentPrice);
         
-        // console.log("balance book after trade", this.balances);
+        console.log("balance book after trade", this.balances);
 
-        // console.log(this.orderbooks);
+        console.log(this.orderbooks);
         
  
         return {
@@ -233,24 +234,6 @@ export class Engine {
         })
     }
 
-    publishWsDepthUpdates(market: string) {
-        const orderbook = this.orderbooks.find(o => o.ticker() === market);
-
-        if (!orderbook) {
-            return;
-        }
-
-        const depth = orderbook.getDepth();
-        RedisManager.getInstace().publishMessage(`depth@${market}`, {
-            stream: `depth@${market}`,
-            data: {
-                a: depth.asks,
-                b: depth.bids,
-                e: "depth"
-            }
-        })
-    
-    }
 
     publisWsDepthUpdates(market: string) {
         const orderbook = this.orderbooks.find(o => o.ticker() === market);
@@ -269,6 +252,45 @@ export class Engine {
             }
         });
     
+    }
+    createDbTrades(fills: Fill[], market: string, userId: string) {
+        fills.forEach(fill => {
+            RedisManager.getInstace().pushMessageToDb({
+                type: TRADE_ADDED,
+                data: {
+                    market: market,
+                    id: fill.tradeId.toString(),
+                    isBuyerMaker: fill.otherUserId === userId, // TODO: Is this right?
+                    price: fill.price,
+                    quantity: fill.qty.toString(),
+                    quoteQuantity: (fill.qty * Number(fill.price)).toString(),
+                    timestamp: Date.now()
+                }
+            });
+        });
+    }
+    updateDbOrders(order: Order, executedQty: number, fills: Fill[], market: string) {
+        RedisManager.getInstace().pushMessageToDb({
+            type: ORDER_UPDATE,
+            data: {
+                orderId: order.orderId,
+                executedQty: executedQty,
+                market: market,
+                price: order.price.toString(),
+                quantity: order.quantity.toString(),
+                side: order.side,
+            }
+        });
+
+        fills.forEach(fill => {
+            RedisManager.getInstace().pushMessageToDb({
+                type: ORDER_UPDATE,
+                data: {
+                    orderId: fill.markerOrderId,
+                    executedQty: fill.qty
+                }
+            });
+        });
     }
 
     sendUpdatedDepthAt(price: string, market: string) {
@@ -323,10 +345,13 @@ export class Engine {
                 // Note: fill.price is the price of the asset from the orderbooks bids which may or may not be equal to the buying price
                 // but we always need to substract the price from the otherusers baseasset locked balance
 
-                this.balances.get(fill.otherUserId)[quoteAsset].available = this.balances.get(fill.otherUserId)?.[quoteAsset].available + (Number(fill.qty) * Number(orderPrice));
+                this.balances.get(fill.otherUserId)[quoteAsset].available = this.balances.get(fill.otherUserId)?.[quoteAsset].available + (Number(fill.qty) * Number(fill.price));
 
+                // user (one who bought the second and also userId) may or may not have some profit because the order could match at lower price
                 //@ts-ignore
                 this.balances.get(userId)[quoteAsset].locked = this.balances.get(userId)?.[quoteAsset].locked - (Number(fill.qty) * Number(orderPrice));
+                //@ts-ignore
+                this.balances.get(userId)[quoteAsset].available = this.balances.get(userId)?.[quoteAsset].available + (Number(fill.qty) * (Number(orderPrice) - Number(fill.price)));
 
                 // Update base asset balance
 
@@ -334,8 +359,7 @@ export class Engine {
                 this.balances.get(fill.otherUserId)[baseAsset].locked = this.balances.get(fill.otherUserId)?.[baseAsset].locked - (Number(fill.qty)*Number(fill.price));
 
                 //@ts-ignore
-                this.balances.get(userId)[baseAsset].available = this.balances.get(userId)?.[baseAsset].available + (Number(fill.qty)*Number(orderPrice));
-
+                this.balances.get(userId)[baseAsset].available = this.balances.get(userId)?.[baseAsset].available + (Number(fill.qty)*Number(fill.price));
             });
             
         } else {
@@ -352,7 +376,7 @@ export class Engine {
                 this.balances.get(fill.otherUserId)[quoteAsset].locked = this.balances.get(fill.otherUserId)?.[quoteAsset].locked - (Number(fill.qty) * Number(fill.price));
 
                 //@ts-ignore
-                this.balances.get(userId)[quoteAsset].available = this.balances.get(userId)?.[quoteAsset].available + (Number(fill.qty) * Number(fill.price));
+                this.balances.get(userId)[quoteAsset].available = this.balances.get(userId)?.[quoteAsset].available + (Number(fill.qty) * Number(orderPrice));
 
                 // Update base asset balance
 
@@ -361,6 +385,8 @@ export class Engine {
 
                 //@ts-ignore
                 this.balances.get(userId)[baseAsset].locked = this.balances.get(userId)?.[baseAsset].locked - (Number(fill.qty) * Number(orderPrice));
+                //@ts-ignore
+                this.balances.get(userId)[baseAsset].available = this.balances.get(userId)?.[baseAsset].available - (Number(fill.qty) * (Number(fill.price) - Number(orderPrice)));
 
             });
         }
