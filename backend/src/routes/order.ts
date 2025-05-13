@@ -9,7 +9,7 @@ orderRouter.post("/", async (req, res) => {
     const { market, price, quantity, side, userId } = req.body;
 
     
-    console.log({ market, price, quantity, side, userId });
+    //console.log({ market, price, quantity, side, userId });
     const response = await RedisManager.getInstance().sendAndAwait<CreateOrderMessageToEngine, OrderPlacedMessageFromOrderBook>({
         type: CREATE_ORDER,
         data: {
@@ -44,5 +44,7 @@ orderRouter.get("/open", async (req, res) => {
             market: req.query.market as string
         }
     });
+    console.log(response);
+    
     res.json(response.payload);
 });

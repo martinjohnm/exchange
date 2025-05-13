@@ -1,7 +1,8 @@
 import { RedisManager } from "../RedisManager"
 import { AllMessages, ORDER_UPDATE, TRADE_ADDED } from "../types";
-import { CANCEL_ORDER, CREATE_ORDER, CreateOrderMessageFromApi, GET_DEPTH, GET_TICKER, MessageTypeToENgine, OrderType } from "../types/fromApi";
+import { CANCEL_ORDER, CREATE_ORDER, CreateOrderMessageFromApi, GET_DEPTH, GET_OPEN_ORDERS, GET_TICKER, MessageTypeToENgine, OrderType } from "../types/fromApi";
 import { Fill, Order, Orderbook } from "./Orderbook"
+import { v4 as uuidv4 } from 'uuid';
 
 export const BASE_CURRENCY = "INR";
 
@@ -167,6 +168,31 @@ export class Engine {
                     }
                 });
             }
+
+            case GET_OPEN_ORDERS:
+            try {
+                const market = message.data.market;
+                const orderbook = this.orderbooks.find(o => o.ticker() === market)
+                if (!orderbook) {
+                    throw new Error('No orderbook found')
+                }
+
+                const openOrders = orderbook.getOpenOrders(message.data.userId)
+
+                RedisManager.getInstace().sendToApi(clientId, {
+                    type: "OPEN_ORDERS",
+                    payload: openOrders
+                }); 
+            } catch(e) {
+                console.log(e);
+                RedisManager.getInstace().sendToApi(clientId, {
+                    type: "DEPTH",
+                    payload: {
+                        bids: [],
+                        asks: []
+                    }
+                });
+            }
             break;
         }
     }
@@ -193,7 +219,7 @@ export class Engine {
         const order: Order = {
             price : Number(price),
             quantity : Number(quantity),
-            orderId : Math.random().toString(36).substring(2,15) + Math.random().toString(36).substring(2,15),
+            orderId : uuidv4(),
             filled : 0,
             side,
             userId
@@ -283,6 +309,7 @@ export class Engine {
         });
 
         fills.forEach(fill => {
+            
             RedisManager.getInstace().pushMessageToDb({
                 type: ORDER_UPDATE,
                 data: {

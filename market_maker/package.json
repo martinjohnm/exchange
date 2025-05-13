@@ -1,6 +1,7 @@
 {
-  "name": "websocket-server",
+  "name": "market_maker",
   "version": "1.0.0",
+  "description": "",
   "main": "index.js",
   "scripts": {
     "build": "tsc",
@@ -10,11 +11,9 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
+  "type": "commonjs",
   "dependencies": {
-    "@types/redis": "^4.0.10",
-    "@types/ws": "^8.18.1",
-    "redis": "^4.7.0",
-    "ws": "^8.18.1"
+    "@types/axios": "^0.9.36",
+    "axios": "^1.9.0"
   }
 }
