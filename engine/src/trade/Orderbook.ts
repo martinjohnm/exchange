@@ -1,3 +1,4 @@
+import { getHourKey, getMinuteKey, getWeekKey } from "../utils/time";
 import { BASE_CURRENCY } from "./Engine";
 
 
@@ -17,6 +18,16 @@ export interface Fill {
     tradeId: number;
     otherUserId: string;
     markerOrderId: string;
+    timestamp : number
+}
+
+export interface Candle {
+    open?: number,
+    high?: number, 
+    low?: number, 
+    close?: number, 
+    volume?: number,
+    timestamp?: string
 }
 
 export class Orderbook {
@@ -28,6 +39,8 @@ export class Orderbook {
     quoteAsset : string = BASE_CURRENCY;
     lastTradeId : number;
     currentPrice : number;
+    timeBucket : Map<string, string>;
+    candles : Map<string, Candle>
 
     constructor(baseAsset: string, bids: Order[], asks: Order[], lastTradeId : number, currentPrice : number) {
         this.bids = bids
@@ -37,6 +50,10 @@ export class Orderbook {
         this.baseAsset = baseAsset
         this.lastTradeId = lastTradeId
         this.currentPrice = currentPrice
+        this.timeBucket = new Map([["1m", getMinuteKey(Date.now())], 
+                                   ["1h", getHourKey(Date.now())],
+                                   ["1w", getWeekKey(Date.now())]])
+        this.candles = new Map()
     }
 
     ticker() {
@@ -63,7 +80,6 @@ export class Orderbook {
             
             // check if the full quantity matched then return other wise add it to bids and return
             if (executedQty === order.quantity) {
-                // console.log(this.bidsDepth, this.asksDepth);
                 
                 return {
                     executedQty, 
@@ -74,7 +90,6 @@ export class Orderbook {
             this.bids.push(order);
             // add the unfilled quantiy for the price to bids depth
             this.updateDepth("bids",(order.quantity-order.filled), String(order.price), "add")
-            // console.log(this.bidsDepth, this.asksDepth);
                 
             return {
                 executedQty, 
@@ -88,7 +103,6 @@ export class Orderbook {
       
             // check if the full qunty matched then return otherwise add it to asks and return
             if (executedQty === order.quantity) {
-                    // console.log(this.bidsDepth,this.asksDepth);
                     
                 return {
                     executedQty, 
@@ -98,7 +112,6 @@ export class Orderbook {
             this.asks.push(order);
             // add the unfilled quantiy for the price to asks depth
             this.updateDepth("asks",(order.quantity-order.filled), String(order.price), "add")
-            // console.log(this.bidsDepth, this.asksDepth);            
             return {
                 executedQty,
                 fills
@@ -128,6 +141,7 @@ export class Orderbook {
                 const filledQty = Math.min((order.quantity - executedQty), this.asks[i].quantity-this.asks[i].filled)
                 executedQty += filledQty
                 this.asks[i].filled += filledQty;
+                const timeMatched = Date.now()
                 // subtract the filled quantities in depthMap
                 this.updateDepth("asks",filledQty, String(this.asks[i].price),"substract")
                 fills.push({
@@ -135,13 +149,14 @@ export class Orderbook {
                     qty : filledQty,
                     tradeId: this.lastTradeId++,
                     otherUserId: this.asks[i].userId,
-                    markerOrderId : this.asks[i].orderId
+                    markerOrderId : this.asks[i].orderId,
+                    timestamp : timeMatched
                 })
 
+                this.createOHLCVForTimeFrames(timeMatched, this.asks[i].price)
                 this.currentPrice = this.asks[i].price
             
-                console.log(this.currentPrice);
-                
+        
             }
         }
 
@@ -174,19 +189,24 @@ export class Orderbook {
                 const filledBids = Math.min(order.quantity - executedQty, this.bids[i].quantity-this.bids[i].filled)
                 executedQty += filledBids;
                 this.bids[i].filled += filledBids;
+                const timeMatched = Date.now()
                 // subtract the filled quantities in depthMap
                 this.updateDepth("bids",filledBids, String(this.bids[i].price),"substract")
+                
                 fills.push({
                     price : this.bids[i].price.toString(),
                     qty: filledBids,
                     tradeId : this.lastTradeId++,
                     otherUserId: this.bids[i].userId,
-                    markerOrderId: this.bids[i].orderId
+                    markerOrderId: this.bids[i].orderId,
+                    timestamp : timeMatched
                 })
 
-                this.currentPrice = this.bids[i].price
-                console.log(this.currentPrice);
+                this.createOHLCVForTimeFrames(timeMatched,this.bids[i].price)
 
+                this.currentPrice = this.bids[i].price
+                
+     
             }
         }
 
@@ -203,6 +223,7 @@ export class Orderbook {
         }
     }
 
+    
 
     updateDepth(sideType: "bids"|"asks", quantity: number, price: string, type: "add"|"substract") {
 
@@ -242,6 +263,7 @@ export class Orderbook {
 
     }
 
+    
     getDepth() {
         
         return {
@@ -279,5 +301,30 @@ export class Orderbook {
             this.asks.splice(index,1)
             return price
         }
+    }
+
+    createOHLCVForTimeFrames(interval: number, price : number) {
+        if (this.timeBucket.get("1m") !== getMinuteKey(interval)) {
+            this.timeBucket.set("1m", getMinuteKey(interval))
+            this.candles.set("1m", {
+                open : price,
+                close : price,
+                low : price,
+                high : price,
+                timestamp : getMinuteKey(interval)
+            })
+        } else {
+            const curLow = this.candles.get("1m")?.low ?? Number.MAX_SAFE_INTEGER
+            const curHigh = this.candles.get("1m")?.high ?? Number.MIN_SAFE_INTEGER
+            this.candles.set("1m", {
+                ...this.candles.get("1m"),
+                low : Math.min(curLow, price),
+                high : Math.max(curHigh, price)
+            })
+        }
+    }
+
+    getCandles() {
+        return Array.from(this.candles)
     }
 }

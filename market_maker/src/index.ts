@@ -46,7 +46,7 @@ async function main() {
         }
     }
 
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise(resolve => setTimeout(resolve, 400));
     main()
 }
 
@@ -87,11 +87,13 @@ async function cancelAsksLessThan(openOrders: any[], price: number) {
 }
 
 
-const generateUniformPrice = (mean = 200, spread = 5) => {
+const generateUniformPrice = (mean = 300, spread = 15) => {
   const min = mean - spread;
   const max = mean + spread;
   const price = Math.random() * (max - min) + min;
-  return Math.round(price * 100) / 100;
+
+  return Number(price.toFixed(2));
+ 
 };
  
 

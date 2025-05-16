@@ -6,6 +6,7 @@ import cors from "cors"
 import { tickersRouter } from "./routes/ticker"
 import { depthRouter } from "./routes/depth"
 import { orderRouter } from "./routes/order"
+import { klineRouter } from "./routes/klines"
 
 const app = express()
 
@@ -14,6 +15,7 @@ app.use(express.json())
 
 app.use("/api/v1/order", orderRouter)
 app.use("/api/v1/tickers", tickersRouter)
+app.use("/api/v1/klines", klineRouter);
 app.use("/api/v1/depth", depthRouter)
 
 app.listen(3001, () => {

@@ -12,8 +12,8 @@ export function Depth({ market }: {market: string}) {
     
     useEffect(() => {
         SignalingManager.getInstance().registerCallBack("depth", (data: any) => {
-            console.log("depth has been updated");
-            console.log(data);
+            // console.log("depth has been updated");
+            // console.log(data);
             
             setBids(() => {
                 return data.bids.sort((x:any, y:any) => Number(y[0]) - Number(x[0]));

@@ -102,9 +102,7 @@ export class Engine {
                         }
                     }
 
-                    // console.log(this.orderbooks);
-                    // console.log(this.balances);
-                    
+      
                     
                     RedisManager.getInstace().sendToApi(clientId, {
                         type : "ORDER_CANCELLED",
@@ -213,8 +211,7 @@ export class Engine {
 
         this.checkAndLockFunds(baseAsset, quoteAsset, side, userId,  price, quantity)
 
-        console.log("balance book during trade", this.balances);
-        
+ 
 
         const order: Order = {
             price : Number(price),
@@ -230,12 +227,8 @@ export class Engine {
         this.publisWsDepthUpdates(market)
         this.createDbTrades(fills, market, userId);
         this.updateDbOrders(order, executedQty, fills, market);
-        // console.log(orderbook.currentPrice);
-        
-        console.log("balance book after trade", this.balances);
-
-        console.log(this.orderbooks);
-        
+       
+ 
  
         return {
             executedQty, 
@@ -267,6 +260,8 @@ export class Engine {
             return;
         }
         const depth = orderbook.getDepth();
+        console.log(orderbook.getCandles());
+        
 
         RedisManager.getInstace().publishMessage(`depth@${market}`, {
             stream: `depth@${market}`,
@@ -290,7 +285,7 @@ export class Engine {
                     price: fill.price,
                     quantity: fill.qty.toString(),
                     quoteQuantity: (fill.qty * Number(fill.price)).toString(),
-                    timestamp: Date.now()
+                    timestamp : fill.timestamp
                 }
             });
         });
@@ -390,7 +385,6 @@ export class Engine {
             });
             
         } else {
-            // console.log(fills);
             
             fills.forEach(fill => {
                 // Update quote asset balance

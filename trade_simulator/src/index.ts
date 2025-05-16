@@ -15,8 +15,8 @@ async function main() {
     
     await axios.post(`${BE_URL}/api/v1/order`, {
             market : "TATA_INR",
-            price : price.toString(), 
-            quantity : "4", 
+            price : (price - Math.random() * 1).toFixed(1).toString(), 
+            quantity : "1", 
             side : "sell", 
             userId : "2" 
         }
@@ -26,8 +26,8 @@ async function main() {
 
     await axios.post(`${BE_URL}/api/v1/order`, {
             market : "TATA_INR",
-            price : price.toString(), 
-            quantity : "4", 
+            price : (price - Math.random() * 1).toFixed(1).toString(), 
+            quantity : "1", 
             side : "buy", 
             userId : "1" 
         }
@@ -36,20 +36,20 @@ async function main() {
     await axios.post(`${BE_URL}/api/v1/order`, {
 
             market : "TATA_INR",
-            price : price.toString(), 
-            quantity : "4", 
+            price : (price - Math.random() * 1).toFixed(1).toString(), 
+            quantity : "1", 
             side : "sell", 
-            userId : "2" 
+            userId : "1" 
 
     })
 
     await axios.post(`${BE_URL}/api/v1/order`, {
 
             market : "TATA_INR",
-            price : price.toString(), 
-            quantity : "4", 
+            price : (price - Math.random() * 1).toFixed(1).toString(), 
+            quantity : "1", 
             side : "buy", 
-            userId : "1" 
+            userId : "2" 
 
     })
 
@@ -60,11 +60,11 @@ async function main() {
 }
 
 
-const generateUniformPrice = (mean = 200, spread = 5) => {
+const generateUniformPrice = (mean = 380, spread = 20) => {
   const min = mean - spread;
   const max = mean + spread;
   const price = Math.random() * (max - min) + min;
-  return Math.round(price * 100) / 100;
+  return Number(price.toFixed(2));
 };
     
 
