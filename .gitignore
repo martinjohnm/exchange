@@ -5,3 +5,4 @@ engine/node_modules/
 engine/dist/
 websocket-server/node_modules/
 websocket-server/dist/
+node_modules
