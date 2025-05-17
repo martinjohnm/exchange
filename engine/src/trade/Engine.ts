@@ -225,6 +225,7 @@ export class Engine {
         const { fills, executedQty } = orderbook.addOrder(order)
         this.updateBalance(userId, baseAsset, quoteAsset, side, fills, executedQty, order.price);
         this.publisWsDepthUpdates(market)
+        this.publishWSCandles(market)
         this.createDbTrades(fills, market, userId);
         this.updateDbOrders(order, executedQty, fills, market);
        
@@ -251,6 +252,24 @@ export class Engine {
                 }
             })
         })
+    }
+
+    publishWSCandles(market : string) {
+        const orderbook = this.orderbooks.find(o => o.ticker() === market);
+        if (!orderbook) {
+            return;
+        }
+        const candles = orderbook.getCandles();
+        console.log(orderbook.getCandles());
+        
+
+        RedisManager.getInstace().publishMessage(`candles@${market}`, {
+            stream: `candles@${market}`,
+            data: {
+                candles,
+                e : "candles"
+            }
+        });
     }
 
 

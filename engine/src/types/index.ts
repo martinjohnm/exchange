@@ -19,3 +19,12 @@ type Message<T extends keyof MessageMap = keyof MessageMap> = {
 export type AllMessages = {
     [K in keyof MessageMap]: Message<K>;
   }[keyof MessageMap];
+
+
+export enum TimeFrame {
+  ONEMIN = "1m",
+  FIVEMIN = "5m",
+  FIFTEENMIN = "15m",
+  ONEHOUR = "1h",
+  ONEWEEK = "1w"
+}

@@ -1,4 +1,5 @@
-import { getHourKey, getMinuteKey, getWeekKey } from "../utils/time";
+import { TimeFrame } from "../types";
+import { getHourKey, getMinuteKey, getTimeKey, getWeekKey } from "../utils/time";
 import { BASE_CURRENCY } from "./Engine";
 
 
@@ -26,8 +27,18 @@ export interface Candle {
     high?: number, 
     low?: number, 
     close?: number, 
+    current? : number,
     volume?: number,
     timestamp?: string
+}
+
+export enum CandleTypes {
+    ONEMIN = "1m",
+    ONEMINLAST = "1mlast",
+    ONEHOUR = "1h",
+    ONEHOURLAST = "1hlast",
+    ONEWEEK = "1w",
+    ONEWEEKLAST = "1wlast"
 }
 
 export class Orderbook {
@@ -40,7 +51,7 @@ export class Orderbook {
     lastTradeId : number;
     currentPrice : number;
     timeBucket : Map<string, string>;
-    candles : Map<string, Candle>
+    candles : Map<CandleTypes, Candle>
 
     constructor(baseAsset: string, bids: Order[], asks: Order[], lastTradeId : number, currentPrice : number) {
         this.bids = bids
@@ -50,9 +61,13 @@ export class Orderbook {
         this.baseAsset = baseAsset
         this.lastTradeId = lastTradeId
         this.currentPrice = currentPrice
-        this.timeBucket = new Map([["1m", getMinuteKey(Date.now())], 
-                                   ["1h", getHourKey(Date.now())],
-                                   ["1w", getWeekKey(Date.now())]])
+        this.timeBucket = new Map([[CandleTypes.ONEMIN, getMinuteKey(Date.now())], 
+                                   
+                                   [CandleTypes.ONEHOUR, getHourKey(Date.now())],
+                                   
+                                   [CandleTypes.ONEWEEK, getWeekKey(Date.now())],
+                                   
+                                ])
         this.candles = new Map()
     }
 
@@ -304,22 +319,46 @@ export class Orderbook {
     }
 
     createOHLCVForTimeFrames(interval: number, price : number) {
-        if (this.timeBucket.get("1m") !== getMinuteKey(interval)) {
-            this.timeBucket.set("1m", getMinuteKey(interval))
-            this.candles.set("1m", {
+
+        // ONEMIN
+        this.createOrUpdateCandle(interval, price,TimeFrame.ONEMIN, CandleTypes.ONEMIN, CandleTypes.ONEMINLAST)
+        // ONEHOUR
+        this.createOrUpdateCandle(interval, price,TimeFrame.ONEHOUR, CandleTypes.ONEHOUR, CandleTypes.ONEHOURLAST)
+        // ONEWEEK
+        this.createOrUpdateCandle(interval, price,TimeFrame.ONEWEEK, CandleTypes.ONEWEEK, CandleTypes.ONEWEEKLAST)
+    }
+
+    createOrUpdateCandle(interval: number, price : number, timeFrame: TimeFrame, candle: CandleTypes, lastCandle: CandleTypes) {
+
+        if (this.timeBucket.get(timeFrame) !== getTimeKey(interval, timeFrame)) {
+            this.timeBucket.set(timeFrame, getTimeKey(interval, timeFrame))
+     
+            // update the existing one to last candle and set close price
+            this.candles.set(lastCandle, {
+                open : this.candles.get(candle)?.open,
+                close : this.candles.get(candle)?.current,
+                low : this.candles.get(candle)?.low,
+                high : this.candles.get(candle)?.high,
+                timestamp : getTimeKey(interval, timeFrame)
+            })
+
+            // create a new candle
+            this.candles.set(candle, {
                 open : price,
-                close : price,
                 low : price,
                 high : price,
-                timestamp : getMinuteKey(interval)
+                timestamp : getTimeKey(interval, timeFrame),
+                current : price
             })
+            
         } else {
-            const curLow = this.candles.get("1m")?.low ?? Number.MAX_SAFE_INTEGER
-            const curHigh = this.candles.get("1m")?.high ?? Number.MIN_SAFE_INTEGER
-            this.candles.set("1m", {
-                ...this.candles.get("1m"),
+            const curLow = this.candles.get(candle)?.low ?? Number.MAX_SAFE_INTEGER
+            const curHigh = this.candles.get(candle)?.high ?? Number.MIN_SAFE_INTEGER
+            this.candles.set(candle, {
+                ...this.candles.get(candle),
                 low : Math.min(curLow, price),
-                high : Math.max(curHigh, price)
+                high : Math.max(curHigh, price),
+                current : price
             })
         }
     }

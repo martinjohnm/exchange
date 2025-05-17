@@ -1,3 +1,22 @@
+import { TimeFrame } from "../types";
+
+
+export function getTimeKey(timestamp : number, timeFrame: TimeFrame) : string {
+
+  switch (timeFrame) {
+    case TimeFrame.ONEMIN:
+      return getMinuteKey(timestamp)
+    case TimeFrame.ONEHOUR:
+      return getHourKey(timestamp)
+    case TimeFrame.ONEWEEK:
+      return getWeekKey(timestamp)
+    default:
+      return ""
+  }
+
+}
+
+
 // Get start of the minute timestamp (ms)
 export function getMinuteKey(timestamp: number): string {
   const date = new Date(timestamp);

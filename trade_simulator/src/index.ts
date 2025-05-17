@@ -53,14 +53,14 @@ async function main() {
 
     })
 
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise(resolve => setTimeout(resolve, 1));
 
     main()
 
 }
 
 
-const generateUniformPrice = (mean = 380, spread = 20) => {
+const generateUniformPrice = (mean = 500, spread = 20) => {
   const min = mean - spread;
   const max = mean + spread;
   const price = Math.random() * (max - min) + min;
