@@ -53,18 +53,29 @@ export function TradeView({
 
 
 
-        SignalingManager.getInstance().registerCallBack("depth", (data: any) => {
+        SignalingManager.getInstance().registerCallBack("candles", (data: any) => {
     
-    
-            setThrottledPrice(data.price)
-            setCandles(prev => [...prev, data.price])
-            updateCandle()
+          console.log(data[0][1].open, data[0][1].low, data[0][1].high, data[0][1].current);
           
-        }, `DEPTH-${market}`)
+          chartManager.update({
+            open : data[0][1].open,
+            high : data[0][1].high,
+            low : data[0][1].low,
+            current : data[0][1].current
+          })
+   
+        }, `CANDLES-${market}`)
        
-        
+        SignalingManager.getInstance().sendMessage({"method" : "SUBSCRIBE", "params":[`candles@${market}`]})
+
+       
         //@ts-ignore
         chartManagerRef.current = chartManager;
+
+        return () => {
+            SignalingManager.getInstance().sendMessage({"method":"UNSUBSCRIBE","params":[`candles@${market}`]});
+            SignalingManager.getInstance().deregisterCallBack("candles", `CANDLES-${market}`);
+        }
         
       }
     };
@@ -75,38 +86,35 @@ export function TradeView({
   }, [market, chartRef]);
 
   
-  const updateCandle = () => {
+  // const updateCandle = () => {
    
-      chartManageer?.update({
-          close : Number(throttledPrice),
-          low : Number(throttledPrice),
-          high : Number(throttledPrice),
-          open : Number(360),
-          newCandleInitiated : false
-        })
-  }
+  //     chartManageer?.update({
+  //         close : Number(throttledPrice),
+  //         low : Number(throttledPrice),
+  //         high : Number(throttledPrice),
+  //         open : Number(360),
+  //         newCandleInitiated : false
+  //       })
+  // }
 
-  useEffect(() => {
-    updateCandle()
-  }, [nextMinute, throttledPrice])
-
-
-  function onNextMinute(): void {
-      const now = new Date();
-      const seconds = now.getSeconds();
-      const milliseconds = now.getMilliseconds();
-
-      const delay = 100;
+  // // useEffect(() => {
+  // //   updateCandle()
+  // // }, [nextMinute, throttledPrice])
 
 
-      setTimeout(() => {
-            console.log("⏰ Alarm triggered!");
-            setNextMinute(true)
-      }, delay);
-}
+//   function onNextMinute(): void {
+//       const now = new Date();
+//       const seconds = now.getSeconds();
+//       const milliseconds = now.getMilliseconds();
 
-onNextMinute()
+//       const delay = 100;
 
+
+//       setTimeout(() => {
+//             console.log("⏰ Alarm triggered!");
+//             setNextMinute(true)
+//       }, delay);
+// }
 
   return (
     <>

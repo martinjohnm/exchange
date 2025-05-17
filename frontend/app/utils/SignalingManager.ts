@@ -63,6 +63,10 @@ export class SignalingManager {
                         const price = message.data.price
                         callback({ bids: updatedBids, asks: updatedAsks, price });
                     }
+                    if (type === "candles") {
+                        callback(message.data.candles)
+                        
+                    }
                 })
             }
         }
