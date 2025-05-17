@@ -364,6 +364,6 @@ export class Orderbook {
     }
 
     getCandles() {
-        return Array.from(this.candles)
+        return Object.fromEntries(this.candles)
     }
 }

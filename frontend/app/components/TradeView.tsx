@@ -55,13 +55,14 @@ export function TradeView({
 
         SignalingManager.getInstance().registerCallBack("candles", (data: any) => {
     
-          console.log(data[0][1].open, data[0][1].low, data[0][1].high, data[0][1].current);
-          
+ 
+      
           chartManager.update({
-            open : data[0][1].open,
-            high : data[0][1].high,
-            low : data[0][1].low,
-            current : data[0][1].current
+            open : data["1m"].open,
+            high : data["1m"].high,
+            low : data["1m"].low,
+            current : data["1m"].current,
+            timestamp : data["1m"].timestamp
           })
    
         }, `CANDLES-${market}`)

@@ -77,10 +77,16 @@ export class ChartManager {
             low: number,
             high: number,
             open: number,
-            current: number
+            current: number,
+            timestamp : string
     }) {
-        if (!this.lastUpdateTime) {
-        this.lastUpdateTime = new Date().getTime();
+
+        const decodedTime = parseInt(updatedcandle.timestamp, 36);
+
+        console.log(decodedTime);
+        
+        if ( decodedTime !== this.lastUpdateTime ) {
+            this.lastUpdateTime = decodedTime;
         }
 
         this.candleSeries.update({

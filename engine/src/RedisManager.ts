@@ -44,8 +44,7 @@ export class RedisManager {
     }
 
     public pushMessageToDb(message: DbMessage) {
-        console.log(message);
-        
+     
         this.client.lPush("db_processor", JSON.stringify(message))
     }
 
