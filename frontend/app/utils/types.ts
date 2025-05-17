@@ -39,3 +39,9 @@ export interface Ticker {
     "trades": string,
     "volume": string
 }
+
+export enum TimeFrame {
+    ONEMIN = "1m",
+    ONEHOUR = "1h",
+    ONEWEEK = "1w"
+}

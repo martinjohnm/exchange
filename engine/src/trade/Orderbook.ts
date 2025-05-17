@@ -352,12 +352,19 @@ export class Orderbook {
             })
             
         } else {
+            // if true update the current one
             const curLow = this.candles.get(candle)?.low ?? Number.MAX_SAFE_INTEGER
             const curHigh = this.candles.get(candle)?.high ?? Number.MIN_SAFE_INTEGER
+            
+            // ugly logic
+            const curOpen = this.candles.get(candle)?.open ?? price
+
             this.candles.set(candle, {
-                ...this.candles.get(candle),
+                // ...this.candles.get(candle),
+                open : curOpen,
                 low : Math.min(curLow, price),
                 high : Math.max(curHigh, price),
+                timestamp : getTimeKey(interval, timeFrame),
                 current : price
             })
         }

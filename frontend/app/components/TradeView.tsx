@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ChartManager } from "../utils/ChartManager";
 import { getKlines } from "../utils/httpClient";
-import { KLine } from "../utils/types";
+import { KLine, TimeFrame } from "../utils/types";
 import { SignalingManager } from "../utils/SignalingManager";
 import { onNextMinute } from "../utils/time.utils";
 
@@ -18,11 +18,12 @@ export function TradeView({
   const [candles, setCandles] = useState<any[]>([])
   const [chartManageer, setChartManageer] = useState<ChartManager>()
   const [nextMinute, setNextMinute] = useState<boolean>(false)
+  const [timeFrame, setTimeFrame] = useState<TimeFrame>(TimeFrame.ONEHOUR)
   useEffect(() => {
     const init = async () => {
       let klineData: KLine[] = [];
       try {
-        klineData = await getKlines(market, "1m", Math.floor((new Date().getTime() - 1000 * 60 * 60 * 24 * 7) / 1000), Math.floor(new Date().getTime() / 1000)); 
+        klineData = await getKlines(market, timeFrame, Math.floor((new Date().getTime() - 1000 * 60 * 60 * 24 * 7) / 1000), Math.floor(new Date().getTime() / 1000)); 
 
         
       } catch (e) { }
@@ -56,13 +57,15 @@ export function TradeView({
         SignalingManager.getInstance().registerCallBack("candles", (data: any) => {
     
  
+          console.log(data[timeFrame]);
+          
       
           chartManager.update({
-            open : data["1m"].open,
-            high : data["1m"].high,
-            low : data["1m"].low,
-            current : data["1m"].current,
-            timestamp : data["1m"].timestamp
+            open : data[timeFrame].open,
+            high : data[timeFrame].high,
+            low : data[timeFrame].low,
+            current : data[timeFrame].current,
+            timestamp : data[timeFrame].timestamp
           })
    
         }, `CANDLES-${market}`)
